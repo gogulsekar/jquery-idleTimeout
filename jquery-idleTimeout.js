@@ -78,6 +78,7 @@
     // use this code snippet on your site's Logout button: $.fn.idleTimeout().logout();
     this.logout = function () {
       store.set('idleTimerLoggedOut', true);
+	  store.set('userLoggedOut', true);
     };
 
     //##############################
@@ -104,7 +105,7 @@
 
       $('body').on(currentConfig.activityEvents, function () {
 
-        if (!currentConfig.enableDialog || (currentConfig.enableDialog && isDialogOpen() !== true)) {
+        if ((!currentConfig.enableDialog || (currentConfig.enableDialog && isDialogOpen() !== true)) && store.get('userLoggedOut') == false) {
           startIdleTimer();
         }
       });
@@ -119,12 +120,14 @@
 
         if (!currentConfig.enableDialog) { // warning dialog is disabled
           logoutUser(); // immediately log out user when user is idle for idleTimeLimit
+		  stopIdleTimer();
         } else if (currentConfig.enableDialog && isDialogOpen() !== true) {
           openWarningDialog();
           startDialogTimer(); // start timing the warning dialog
         }
       } else if (store.get('idleTimerLoggedOut') === true) { //a 'manual' user logout?
         logoutUser();
+		stopIdleTimer();
       } else {
 
         if (currentConfig.enableDialog && isDialogOpen() === true) {
@@ -142,7 +145,8 @@
 
     checkIdleTimeoutLoop = function () {
       checkIdleTimeout();
-      idleTimer = setTimeout(checkIdleTimeoutLoop, (currentConfig.idleCheckHeartbeat * 1000));
+	  if(store.get('userLoggedOut') === false && store.get('idleTimerLoggedOut') === false)
+        idleTimer = setTimeout(checkIdleTimeoutLoop, (currentConfig.idleCheckHeartbeat * 1000));
     };
 
     stopIdleTimer = function () {
@@ -167,6 +171,7 @@
             text: currentConfig.dialogLogOutNowButton,
             click: function () {
               logoutUser();
+			  stopIdleTimer();
             }
           }
           ],
@@ -262,6 +267,7 @@
 
         store.set('idleTimerLastActivity', $.now());
         store.set('idleTimerLoggedOut', false);
+        store.set('userLoggedOut', false);
 
         activityDetector();
 
